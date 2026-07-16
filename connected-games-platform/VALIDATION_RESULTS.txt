@@ -1,0 +1,21 @@
+PLAYCONNECT - RISULTATI DI VALIDAZIONE
+Data: 16 luglio 2026
+
+ESEGUITI CON SUCCESSO NELL'AMBIENTE DI PREPARAZIONE
+- Test Node.js: 25 superati, 0 falliti
+- Controllo struttura progetto: 127 controlli superati
+- Controllo sintassi JavaScript: superato
+- OpenAPI: versione 3.0.3, 40 percorsi validi
+- Relazione DOCX: 15 pagine renderizzate e controllate visivamente
+- Relazione PDF: 15 pagine renderizzate e controllate visivamente
+
+TEST DI INTEGRAZIONE FORNITO
+- Comando: node scripts/integration-test.js
+- Verifica gateway, tre microservizi, Edge Service, quattro login e lettura dei dati
+- Richiede prima: docker compose up --build -d
+
+LIMITAZIONE DELL'AMBIENTE DI PREPARAZIONE
+Il comando Docker non era installato nell'ambiente usato per preparare il pacchetto.
+Per questo il test end-to-end dei container non e stato eseguito qui. Il progetto include
+lo script automatico, la procedura demo e i comandi start/stop per eseguirlo sul computer
+dell'esame con Docker Desktop avviato.

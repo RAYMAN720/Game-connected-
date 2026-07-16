@@ -1,0 +1,27 @@
+const fs=require('fs');const path=require('path');const express=require('express');const mqtt=require('mqtt');
+const app=express();app.use(express.json());app.use(express.static(path.join(__dirname,'public')));
+const port=Number(process.env.PORT||4000);const mqttUrl=process.env.MQTT_URL||'mqtt://mqtt-broker:1883';const defaultDeviceId=Number(process.env.DEVICE_ID||1);const defaultLocaleId=Number(process.env.LOCALE_ID||1);
+const dataDir=path.join(__dirname,'data');fs.mkdirSync(dataDir,{recursive:true});const queueFile=path.join(dataDir,'offline-queue.json');if(!fs.existsSync(queueFile))fs.writeFileSync(queueFile,'[]');
+let connected=false;let forcedOffline=false;let lastPublished=null;const running=new Set();const actuatorStates=new Map();
+const client=mqtt.connect(mqttUrl,{clientId:`edge-${defaultDeviceId}`,reconnectPeriod:2000,clean:false});
+function readQueue(){try{return JSON.parse(fs.readFileSync(queueFile,'utf8'));}catch{return[];}}function writeQueue(q){fs.writeFileSync(queueFile,JSON.stringify(q,null,2));}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+function topicFor(e){return `locales/${e.locale_id}/games/${e.game_id}/matches/${e.match_id}/events`;}
+function buildEvent(base,eventType,playerName,description,index){return{event_uuid:`edge-${base.device_id}-${base.match_id}-${Date.now()}-${index}`,device_id:base.device_id,event_type:eventType,match_id:base.match_id,game_id:base.game_id,locale_id:base.locale_id,player_name:playerName||null,description,created_at:new Date().toISOString(),sync_status:connected&&!forcedOffline?'SYNCED':'PENDING'};}
+function publishRaw(topic,payload){return new Promise((resolve,reject)=>{if(!connected||forcedOffline)return reject(new Error('Edge offline'));client.publish(topic,JSON.stringify(payload),{qos:1},e=>e?reject(e):resolve());});}
+async function publishOrQueue(event){try{await publishRaw(topicFor(event),{...event,sync_status:'SYNCED'});lastPublished=event;}catch{const q=readQueue();q.push({...event,sync_status:'PENDING'});writeQueue(q);}}
+async function syncQueue(){if(!connected||forcedOffline)return;const q=readQueue();const remaining=[];for(const event of q){try{await publishRaw(topicFor(event),{...event,sync_status:'SYNCED'});}catch{remaining.push(event);}}writeQueue(remaining);}
+async function simulate(base){if(running.has(base.match_id))return;running.add(base.match_id);try{
+  await publishOrQueue(buildEvent(base,'MATCH_START',null,'Partita iniziata dal dispositivo edge',0));
+  const goals=5+Math.floor(Math.random()*3);for(let i=0;i<goals;i++){await wait(700);const p1=Math.random()>=0.5;await publishOrQueue(buildEvent(base,p1?'GOAL_PLAYER_1':'GOAL_PLAYER_2',p1?base.player1_name:base.player2_name,`Punto di ${p1?base.player1_name:base.player2_name}`,i+1));}
+  await wait(500);await publishOrQueue(buildEvent(base,'MATCH_END',null,'Partita terminata dal dispositivo edge',goals+1));
+}finally{running.delete(base.match_id);await syncQueue();}}
+client.on('connect',()=>{connected=true;client.subscribe(`locales/${defaultLocaleId}/games/+/actuators/+/commands`,{qos:1});syncQueue();});client.on('close',()=>{connected=false;});client.on('error',()=>{connected=false;});
+client.on('message',(topic,b)=>{try{const p=JSON.parse(b.toString());actuatorStates.set(String(p.actuator_id||topic),{topic,...p});}catch{}});
+setInterval(()=>{if(connected&&!forcedOffline)client.publish(`locales/${defaultLocaleId}/edge/${defaultDeviceId}/heartbeat`,JSON.stringify({device_id:defaultDeviceId,locale_id:defaultLocaleId,status:'ONLINE',queue_size:readQueue().length,timestamp:new Date().toISOString()}),{qos:1});syncQueue();},5000);
+app.get('/health',(req,res)=>res.json({service:'edge',mqtt:connected&&!forcedOffline?'ONLINE':'OFFLINE',queue_size:readQueue().length,running_matches:[...running],timestamp:new Date().toISOString()}));
+app.get('/state',(req,res)=>res.json({connected:connected&&!forcedOffline,forced_offline:forcedOffline,queue:readQueue(),last_published:lastPublished,actuators:[...actuatorStates.values()],running_matches:[...running]}));
+app.post('/connection',(req,res)=>{forcedOffline=req.body.online===false;if(!forcedOffline)syncQueue();res.json({online:connected&&!forcedOffline,forced_offline:forcedOffline});});
+app.post('/events',async(req,res)=>{const base={device_id:Number(req.body.device_id||defaultDeviceId),locale_id:Number(req.body.locale_id||defaultLocaleId),game_id:Number(req.body.game_id),match_id:Number(req.body.match_id)};if(!base.game_id||!base.match_id)return res.status(400).json({message:'game_id e match_id obbligatori'});const event=buildEvent(base,req.body.event_type,req.body.player_name,req.body.description||req.body.event_type,1);await publishOrQueue(event);res.status(202).json({message:connected&&!forcedOffline?'Evento pubblicato':'Evento salvato offline',event});});
+app.post('/simulate',(req,res)=>{const base={device_id:Number(req.body.device_id||defaultDeviceId),locale_id:Number(req.body.locale_id||defaultLocaleId),game_id:Number(req.body.game_id),match_id:Number(req.body.match_id),player1_name:req.body.player1_name||'Giocatore 1',player2_name:req.body.player2_name||'Giocatore 2'};if(!base.game_id||!base.match_id)return res.status(400).json({message:'game_id e match_id obbligatori'});if(running.has(base.match_id))return res.status(409).json({message:'Simulazione gia in corso'});simulate(base).catch(console.error);res.status(202).json({message:'Simulazione avviata',match_id:base.match_id});});
+app.listen(port,()=>console.log(`Edge service sulla porta ${port}`));

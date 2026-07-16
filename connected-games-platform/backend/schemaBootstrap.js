@@ -1,0 +1,218 @@
+const { query } = require('./db');
+
+async function columnExists(tableName, columnName) {
+  const rows = await query(
+    `SELECT COUNT(*) AS total FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+    [tableName, columnName]
+  );
+  return Number(rows[0].total) > 0;
+}
+
+async function indexExists(tableName, indexName) {
+  const rows = await query(
+    `SELECT COUNT(*) AS total FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?`,
+    [tableName, indexName]
+  );
+  return Number(rows[0].total) > 0;
+}
+
+async function addColumnIfMissing(tableName, columnName, definition) {
+  if (!(await columnExists(tableName, columnName))) {
+    await query(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  }
+}
+
+async function addIndexIfMissing(tableName, indexName, columns, unique = false) {
+  if (!(await indexExists(tableName, indexName))) {
+    await query(`CREATE ${unique ? 'UNIQUE ' : ''}INDEX ${indexName} ON ${tableName}(${columns})`);
+  }
+}
+
+async function ensureSupportSchema() {
+  await query(`ALTER TABLE users MODIFY COLUMN role ENUM('PLATFORM_ADMIN','LOCAL_ADMIN','GAME_ADMIN','CLIENT') NOT NULL`);
+  await query(`ALTER TABLE games MODIFY COLUMN status ENUM('ONLINE','OFFLINE','IN_GAME','SYNC_PENDING') DEFAULT 'ONLINE'`);
+  await query(`ALTER TABLE matches MODIFY COLUMN status ENUM('LIVE','FINISHED','SYNC_PENDING') DEFAULT 'LIVE'`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS game_types (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL UNIQUE,
+      description VARCHAR(255) NOT NULL,
+      start_event VARCHAR(80) NOT NULL DEFAULT 'MATCH_START',
+      score_event_player1 VARCHAR(80) NOT NULL DEFAULT 'GOAL_PLAYER_1',
+      score_event_player2 VARCHAR(80) NOT NULL DEFAULT 'GOAL_PLAYER_2',
+      end_event VARCHAR(80) NOT NULL DEFAULT 'MATCH_END',
+      score_limit INT NULL,
+      supports_teams BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS sensor_templates (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_type_id INT NOT NULL,
+      name VARCHAR(150) NOT NULL,
+      event_type VARCHAR(80) NOT NULL,
+      description VARCHAR(255) NOT NULL,
+      CONSTRAINT fk_sensor_templates_game_type
+        FOREIGN KEY (game_type_id) REFERENCES game_types(id) ON DELETE CASCADE
+    )
+  `);
+
+  await addColumnIfMissing('games', 'game_type_id', 'INT NULL AFTER locale_id');
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS edge_devices (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      locale_id INT NOT NULL,
+      name VARCHAR(150) NOT NULL,
+      status ENUM('ONLINE','OFFLINE') DEFAULT 'OFFLINE',
+      last_seen DATETIME NULL,
+      last_sync DATETIME NULL,
+      CONSTRAINT fk_edge_devices_locale FOREIGN KEY (locale_id) REFERENCES locales(id) ON DELETE CASCADE
+    )
+  `);
+  await addColumnIfMissing('edge_devices', 'last_sync', 'DATETIME NULL');
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS sensors (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      edge_device_id INT NOT NULL,
+      game_id INT NOT NULL,
+      name VARCHAR(150) NOT NULL,
+      type VARCHAR(80) NOT NULL,
+      sensor_type VARCHAR(80) NOT NULL,
+      mqtt_topic VARCHAR(255) NOT NULL,
+      status ENUM('ACTIVE','INACTIVE','OFFLINE') DEFAULT 'ACTIVE',
+      CONSTRAINT fk_sensors_edge_device FOREIGN KEY (edge_device_id) REFERENCES edge_devices(id) ON DELETE CASCADE,
+      CONSTRAINT fk_sensors_game FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `);
+  await addColumnIfMissing('sensors', 'type', 'VARCHAR(80) NULL');
+  await query("UPDATE sensors SET type = sensor_type WHERE type IS NULL OR type = ''");
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS actuators (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      edge_device_id INT NOT NULL,
+      game_id INT NOT NULL,
+      name VARCHAR(150) NOT NULL,
+      actuator_type VARCHAR(80) NOT NULL,
+      state VARCHAR(120) NOT NULL DEFAULT 'IDLE',
+      mqtt_topic VARCHAR(255) NOT NULL,
+      status ENUM('ACTIVE','INACTIVE','OFFLINE') DEFAULT 'ACTIVE',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_actuators_edge_device FOREIGN KEY (edge_device_id) REFERENCES edge_devices(id) ON DELETE CASCADE,
+      CONSTRAINT fk_actuators_game FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS teams (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(120) NOT NULL UNIQUE,
+      locale_id INT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_teams_locale FOREIGN KEY (locale_id) REFERENCES locales(id) ON DELETE SET NULL
+    )
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS team_members (
+      team_id INT NOT NULL,
+      user_id INT NOT NULL,
+      PRIMARY KEY (team_id, user_id),
+      CONSTRAINT fk_team_members_team FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+      CONSTRAINT fk_team_members_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  await addColumnIfMissing('matches', 'participant_mode', "ENUM('INDIVIDUAL','TEAM') NOT NULL DEFAULT 'INDIVIDUAL' AFTER locale_id");
+  await addColumnIfMissing('matches', 'team1_id', 'INT NULL AFTER player2_id');
+  await addColumnIfMissing('matches', 'team2_id', 'INT NULL AFTER team1_id');
+  await addColumnIfMissing('match_events', 'event_uuid', 'VARCHAR(100) NULL');
+  await addColumnIfMissing('match_events', 'sync_status', "ENUM('PENDING','SYNCED','FAILED') DEFAULT 'SYNCED'");
+  await addColumnIfMissing('match_events', 'received_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
+  await addIndexIfMissing('match_events', 'unique_match_event_uuid', 'event_uuid', true);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS tournaments (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(150) NOT NULL,
+      game_type_id INT NULL,
+      game_type VARCHAR(100) NOT NULL,
+      participant_mode ENUM('INDIVIDUAL','TEAM') NOT NULL DEFAULT 'INDIVIDUAL',
+      status ENUM('DRAFT','ACTIVE','FINISHED') DEFAULT 'DRAFT',
+      start_date DATE NULL,
+      end_date DATE NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await addColumnIfMissing('tournaments', 'game_type_id', 'INT NULL AFTER name');
+  await addColumnIfMissing('tournaments', 'participant_mode', "ENUM('INDIVIDUAL','TEAM') NOT NULL DEFAULT 'INDIVIDUAL' AFTER game_type");
+  await addColumnIfMissing('tournaments', 'start_date', 'DATE NULL');
+  await addColumnIfMissing('tournaments', 'end_date', 'DATE NULL');
+  await query(`ALTER TABLE tournaments MODIFY COLUMN status ENUM('DRAFT','ACTIVE','FINISHED') DEFAULT 'DRAFT'`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS tournament_locations (
+      tournament_id INT NOT NULL,
+      locale_id INT NOT NULL,
+      PRIMARY KEY (tournament_id, locale_id),
+      CONSTRAINT fk_tournament_locations_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+      CONSTRAINT fk_tournament_locations_locale FOREIGN KEY (locale_id) REFERENCES locales(id) ON DELETE CASCADE
+    )
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS tournament_teams (
+      tournament_id INT NOT NULL,
+      team_id INT NOT NULL,
+      PRIMARY KEY (tournament_id, team_id),
+      CONSTRAINT fk_tournament_teams_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+      CONSTRAINT fk_tournament_teams_team FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+    )
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS tournament_matches (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      tournament_id INT NOT NULL,
+      match_id INT NOT NULL,
+      round_number INT NOT NULL DEFAULT 1,
+      scheduled_at DATETIME NULL,
+      UNIQUE KEY unique_tournament_match (tournament_id, match_id),
+      CONSTRAINT fk_tournament_matches_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+      CONSTRAINT fk_tournament_matches_match FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE
+    )
+  `);
+  await addColumnIfMissing('tournament_matches', 'round_number', 'INT NOT NULL DEFAULT 1');
+  await addColumnIfMissing('tournament_matches', 'scheduled_at', 'DATETIME NULL');
+
+  await query(`INSERT INTO game_types (id, name, description, score_limit, supports_teams)
+    VALUES
+      (1, 'Calciobalilla', 'Goal rilevati da due sensori sulle porte.', 5, TRUE),
+      (2, 'Freccette', 'Ogni tiro genera un evento con il punteggio.', 301, TRUE),
+      (3, 'Bocce', 'I sensori registrano la posizione e il punto assegnato.', 13, TRUE),
+      (4, 'Monopoli', 'Pulsanti software registrano gli eventi principali.', NULL, FALSE)
+    ON DUPLICATE KEY UPDATE description = VALUES(description)`);
+
+  await query(`UPDATE games g JOIN game_types gt ON gt.name = g.type SET g.game_type_id = gt.id WHERE g.game_type_id IS NULL`);
+
+  await query(`INSERT INTO users (username, password, role, locale_id)
+    SELECT 'gameadmin', 'game123', 'GAME_ADMIN', NULL
+    WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'gameadmin')`);
+
+  await query(`INSERT INTO actuators (edge_device_id, game_id, name, actuator_type, state, mqtt_topic, status)
+    SELECT 1, 1, 'Display punteggio', 'SCOREBOARD', 'IDLE', 'locales/1/games/1/actuators/1/commands', 'ACTIVE'
+    WHERE EXISTS (SELECT 1 FROM edge_devices WHERE id = 1)
+      AND EXISTS (SELECT 1 FROM games WHERE id = 1)
+      AND NOT EXISTS (SELECT 1 FROM actuators WHERE edge_device_id = 1 AND game_id = 1 AND actuator_type = 'SCOREBOARD')`);
+
+  console.log('Schema completo pronto');
+}
+
+module.exports = { ensureSupportSchema };

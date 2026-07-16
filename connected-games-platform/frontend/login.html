@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlayConnect - Accesso</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-page">
+  <section class="login-panel">
+    <div class="login-brand">
+      <span class="sport-kicker">Cruscotto sportivo connesso</span>
+      <h1>PlayConnect</h1>
+      <p class="login-subtitle">Piattaforma giochi connessi</p>
+      <p>Gestisci giochi connessi, partite live, tornei e classifiche.</p>
+      <img class="login-hero-image" src="img/hero-connected-arena.svg" alt="Anteprima del cruscotto sportivo connesso">
+      <div class="login-preview-card">
+        <div class="panel-title">
+          <span class="badge status-live">LIVE</span>
+          <span class="meta">Calciobalilla Arena</span>
+        </div>
+        <div class="mini-scoreboard">
+          <strong>5</strong>
+          <span>VS</span>
+          <strong>3</strong>
+        </div>
+        <p class="card-note">Sensori MQTT in tempo reale per goal ed eventi partita.</p>
+        <div class="login-data-row">
+          <span>Edge online</span><span>Classifica</span><span>Torneo</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-form">
+      <h2>Accesso</h2>
+      <div class="login-role-cards">
+        <button class="role-card login-preset" type="button" data-username="platform" data-password="platform123">
+          <strong>Amministratore piattaforma</strong>
+          <span>Locali, tornei, statistiche</span>
+        </button>
+        <button class="role-card login-preset" type="button" data-username="localadmin" data-password="local123">
+          <strong>Amministratore locale</strong>
+          <span>Giochi, match, sensori</span>
+        </button>
+        <button class="role-card login-preset" type="button" data-username="gameadmin" data-password="game123">
+          <strong>Amministratore gioco</strong>
+          <span>Tipi di gioco, regole e sensori</span>
+        </button>
+        <button class="role-card login-preset" type="button" data-username="client" data-password="client123">
+          <strong>Client / Giocatore</strong>
+          <span>Risultati e classifica</span>
+        </button>
+      </div>
+      <form id="login-form" class="form-card">
+        <div class="field">
+          <label for="username">Nome utente</label>
+          <input id="username" name="username" autocomplete="username" value="platform" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" value="platform123" required>
+        </div>
+        <button class="btn" type="submit">Accedi</button>
+        <p id="login-error" class="error-message" aria-live="polite"></p>
+      </form>
+      <p class="card-note">Credenziali demo: platform/platform123, localadmin/local123, gameadmin/game123, client/client123</p>
+    </div>
+  </section>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

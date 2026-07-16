@@ -1,0 +1,2 @@
+const express=require('express');const {requireAuth}=require('../middleware/auth');const c=require('../controllers/teamController');
+const router=express.Router();router.use(requireAuth);router.get('/',c.getTeams);router.post('/',c.createTeam);router.post('/:id/members',c.addTeamMember);router.delete('/:id/members/:userId',c.removeTeamMember);router.delete('/:id',c.deleteTeam);module.exports=router;

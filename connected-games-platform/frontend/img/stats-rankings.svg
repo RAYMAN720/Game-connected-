@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Statistiche classifica giocatori</title>
+  <desc id="desc">Illustrazione di classifica e statistiche.</desc>
+  <rect width="720" height="420" rx="30" fill="#08111d"/>
+  <rect x="70" y="68" width="250" height="270" rx="20" fill="#101824" stroke="#26384d" stroke-width="4"/>
+  <rect x="390" y="90" width="200" height="220" rx="18" fill="#101824" stroke="#19e6d2" stroke-width="5"/>
+  <g fill="#8cff3a"><rect x="116" y="250" width="40" height="58" rx="8"/><rect x="180" y="180" width="40" height="128" rx="8"/><rect x="244" y="116" width="40" height="192" rx="8"/></g>
+  <path d="M118 190c56-68 96 20 164-76" fill="none" stroke="#ff3d57" stroke-width="8" stroke-linecap="round"/>
+  <g font-family="Arial, sans-serif" font-weight="900">
+    <text x="430" y="152" font-size="38" fill="#ffcb45">#1</text><text x="500" y="152" font-size="28" fill="#f4f8ff">mario</text>
+    <text x="430" y="212" font-size="38" fill="#19e6d2">#2</text><text x="500" y="212" font-size="28" fill="#f4f8ff">luigi</text>
+    <text x="430" y="272" font-size="38" fill="#ff3d57">#3</text><text x="500" y="272" font-size="28" fill="#f4f8ff">client</text>
+  </g>
+</svg>

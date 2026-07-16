@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client · Partite</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="sidebar"></aside>
+    <main class="main-content">
+      <header class="topbar">
+        <div class="page-title">
+          <h1>Storico partite</h1>
+          <p>Partite concluse e risultati.</p>
+        </div>
+        <span id="user-badge" class="badge user-badge"></span>
+      </header>
+
+      <section class="panel">
+        <div class="panel-title">
+          <h2>Risultati</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Gioco</th>
+                <th>Locale</th>
+                <th>Punteggio</th>
+                <th>Stato</th>
+                <th>Vincitore</th>
+                <th>Inizio</th>
+              </tr>
+            </thead>
+            <tbody id="client-matches-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/games.js"></script>
+  <script src="js/statistics.js"></script>
+  <script src="js/client.js"></script>
+</body>
+</html>

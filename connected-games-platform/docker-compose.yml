@@ -1,0 +1,132 @@
+x-backend-env: &backend-env
+  DB_HOST: mysql
+  DB_USER: root
+  DB_PASSWORD: root
+  DB_NAME: connected_games
+  DB_PORT: 3306
+  MQTT_URL: mqtt://mqtt-broker:1883
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: connected_games_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: connected_games
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: connected_games_mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt_data:/mosquitto/data
+      - mqtt_logs:/mosquitto/log
+
+  catalog-service:
+    build: ./backend
+    container_name: connected_games_catalog
+    restart: unless-stopped
+    command: ["node", "serviceServer.js"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      <<: *backend-env
+      SERVICE_MODE: catalog
+      PORT: 3001
+
+  match-service:
+    build: ./backend
+    container_name: connected_games_match
+    restart: unless-stopped
+    command: ["node", "serviceServer.js"]
+    environment:
+      <<: *backend-env
+      SERVICE_MODE: match
+      PORT: 3002
+      EDGE_URL: http://edge-service:4000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
+      catalog-service:
+        condition: service_started
+
+  tournament-service:
+    build: ./backend
+    container_name: connected_games_tournament
+    restart: unless-stopped
+    command: ["node", "serviceServer.js"]
+    environment:
+      <<: *backend-env
+      SERVICE_MODE: tournament
+      PORT: 3003
+    depends_on:
+      mysql:
+        condition: service_healthy
+      catalog-service:
+        condition: service_started
+
+  edge-service:
+    build: ./simulator
+    container_name: connected_games_edge
+    restart: unless-stopped
+    environment:
+      MQTT_URL: mqtt://mqtt-broker:1883
+      PORT: 4000
+      DEVICE_ID: 1
+      LOCALE_ID: 1
+    ports:
+      - "8090:4000"
+    volumes:
+      - edge_data:/app/data
+    depends_on:
+      mqtt-broker:
+        condition: service_started
+
+  api-gateway:
+    build: ./gateway
+    container_name: connected_games_gateway
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      CATALOG_URL: http://catalog-service:3001
+      MATCH_URL: http://match-service:3002
+      TOURNAMENT_URL: http://tournament-service:3003
+    ports:
+      - "3000:3000"
+    depends_on:
+      - catalog-service
+      - match-service
+      - tournament-service
+
+  frontend:
+    build: ./frontend
+    container_name: connected_games_frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - api-gateway
+
+volumes:
+  mysql_data:
+  mqtt_data:
+  mqtt_logs:
+  edge_data:

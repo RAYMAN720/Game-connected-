@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Amministratore piattaforma · Cruscotto</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="sidebar"></aside>
+    <main class="main-content">
+      <header class="topbar">
+        <div class="page-title">
+          <h1>Controllo piattaforma</h1>
+          <p>Vista globale di locali, giochi connessi, partite e attivita dei sensori.</p>
+        </div>
+        <span id="user-badge" class="badge user-badge"></span>
+      </header>
+
+      <section class="page-hero hero-platform">
+        <div>
+          <span class="sport-kicker">Sala controllo</span>
+          <h2>Tutti i locali, dispositivi e punteggi in una vista.</h2>
+          <p>Una console operativa per stato dei giochi, tornei e risultati live.</p>
+        </div>
+        <img src="img/hero-connected-arena.svg" alt="Sala controllo giochi connessi">
+      </section>
+
+      <section id="platform-cards" class="grid cards"></section>
+
+      <section class="grid two-columns" style="margin-top: 18px;">
+        <div class="panel">
+          <div class="panel-title">
+            <h2>Tutti i giochi</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Gioco</th>
+                  <th>Tipo</th>
+                  <th>Locale</th>
+                  <th>Stato</th>
+                </tr>
+              </thead>
+              <tbody id="platform-games-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">
+            <h2>Partite recenti</h2>
+            <a class="btn secondary" href="platform-statistics.html">Statistiche</a>
+          </div>
+          <div id="platform-recent-matches"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/games.js"></script>
+  <script src="js/statistics.js"></script>
+  <script src="js/platform-admin.js"></script>
+</body>
+</html>
