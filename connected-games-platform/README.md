@@ -59,7 +59,7 @@ Aprire `START_HERE.md` per installazione, avvio, account e demo.
 
 - `docs/00-relazione-finale.md`
 - `docs/13-casi-uso-testuali.md`
-- `docs/14-diagrammi-completi.md`
+- `docs/14-diagrammi-completi.pdf`
 - `docs/15-guida-demo-esame.md`
 - `docs/16-matrice-requisiti.md`
 - `docs/openapi.yaml`
