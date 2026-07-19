@@ -1,21 +1,24 @@
 PLAYCONNECT - RISULTATI DI VALIDAZIONE
-Data: 16 luglio 2026
+Data: 19 luglio 2026
 
 ESEGUITI CON SUCCESSO NELL'AMBIENTE DI PREPARAZIONE
-- Test Node.js: 25 superati, 0 falliti
+- Test Node.js: 27 superati, 0 falliti
 - Controllo struttura progetto: 127 controlli superati
 - Controllo sintassi JavaScript: superato
 - OpenAPI: versione 3.0.3, 40 percorsi validi
 - Relazione DOCX: 15 pagine renderizzate e controllate visivamente
 - Relazione PDF: 15 pagine renderizzate e controllate visivamente
+- Docker compose: tutti i container avviati correttamente
+- Health API: backend, database, MQTT e tre microservizi ONLINE
 
-TEST DI INTEGRAZIONE FORNITO
+TEST DI INTEGRAZIONE ESEGUITO
 - Comando: node scripts/integration-test.js
+- Risultato: 7 test superati, 0 falliti
 - Verifica gateway, tre microservizi, Edge Service, quattro login e lettura dei dati
+- Verifica scenario reale con creazione partita, evento MQTT online, coda offline, sincronizzazione, deduplicazione UUID e aggiornamento attuatore
 - Richiede prima: docker compose up --build -d
 
-LIMITAZIONE DELL'AMBIENTE DI PREPARAZIONE
-Il comando Docker non era installato nell'ambiente usato per preparare il pacchetto.
-Per questo il test end-to-end dei container non e stato eseguito qui. Il progetto include
-lo script automatico, la procedura demo e i comandi start/stop per eseguirlo sul computer
-dell'esame con Docker Desktop avviato.
+NOTA SUL DATABASE LOCALE
+Il computer di sviluppo aveva gia un MySQL locale sulla porta 3306. Per evitare conflitti,
+il container MySQL espone la porta 3307 verso l'host, mentre i microservizi Docker usano
+sempre mysql:3306 nella rete interna.

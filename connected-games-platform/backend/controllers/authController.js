@@ -1,4 +1,5 @@
 const { query } = require('../db');
+const { verifyPassword } = require('../utils/password');
 
 async function login(req, res, next) {
   try {
@@ -9,15 +10,16 @@ async function login(req, res, next) {
     }
 
     const users = await query(
-      'SELECT id, username, role, locale_id FROM users WHERE username = ? AND password = ?',
-      [username, password]
+      'SELECT id, username, password, password_hash, role, locale_id FROM users WHERE username = ?',
+      [username]
     );
 
-    if (!users.length) {
+    if (!users.length || !verifyPassword(password, users[0].password_hash, users[0].password)) {
       return res.status(401).json({ message: 'Credenziali non valide' });
     }
 
-    return res.json(users[0]);
+    const { password: _password, password_hash: _passwordHash, ...publicUser } = users[0];
+    return res.json(publicUser);
   } catch (error) {
     return next(error);
   }

@@ -21,10 +21,11 @@ Studenti / gruppo:
 4. Scelta dell'approccio
 5. Architettura
 6. Implementazione
-7. Validazione
-8. Sicurezza e scelte didattiche
-9. Conclusione
-10. Appendici
+7. Coerenza con il laboratorio
+8. Validazione
+9. Sicurezza e scelte didattiche
+10. Conclusione
+11. Appendici
 
 ## 1. Introduzione
 
@@ -129,6 +130,8 @@ REST viene comunque usato tra interfaccia web e server. In questo modo ogni tecn
 - REST: gestione di utenti, giochi, tornei e consultazione dati;
 - MQTT: eventi dei sensori e comandi degli attuatori.
 
+I laboratori mostrano spesso esempi in Java, Spark e JDBC. Nel progetto e stata scelta una implementazione Node.js con Express e `mysql2`, perche il testo del progetto richiede un sistema funzionante e documentato ma non impone un linguaggio unico. La scelta rimane coerente con i concetti del corso: Express realizza server REST con risorse URI e metodi HTTP, `mysql2` svolge il ruolo di driver verso MySQL, il runtime Node gestisce richieste concorrenti ed eventi tramite modello asincrono, e i container Docker rendono ripetibile l'esecuzione dei servizi.
+
 ## 5. Architettura
 
 Il sistema e organizzato con microservizi e container Docker.
@@ -169,7 +172,23 @@ Le utility contengono regole semplici e testabili: autorizzazioni, validazione d
 
 Sono presenti pagine diverse per ogni ruolo: piattaforma, locale, gioco e giocatore. L'interfaccia edge locale mostra stato MQTT, coda offline, ultimo evento, attuatori ricevuti e pulsanti per simulare online/offline.
 
-## 7. Validazione
+## 7. Coerenza con il laboratorio
+
+Il progetto riprende direttamente i temi principali dei laboratori.
+
+| Tema di laboratorio | Applicazione nel progetto |
+|---|---|
+| REST, HTTP e progettazione URI | API documentata in `docs/openapi.yaml`, gateway `/api`, risorse per utenti, giochi, edge, sensori, partite, tornei e statistiche |
+| Server concorrenti e attivita asincrone | Richieste Express, listener MQTT, heartbeat edge, sincronizzazione offline e polling live eseguiti senza bloccare il server |
+| Publish/Subscribe e message broker | Broker Mosquitto, topic per eventi dei sensori, topic per comandi agli attuatori, QoS 1 e deduplicazione con UUID |
+| IoT, sensori e attuatori | Edge locale, sensori simulati configurabili, coda offline, display/LED/buzzer simulati |
+| Microservices architecture style | API Gateway, Catalog Service, Match Service e Tournament Service separati in container Docker |
+| Accesso a database | MySQL persistente, schema SQL, driver applicativo `mysql2`, query parametrizzate e bootstrap dello schema |
+| OAuth2, Keycloak e TLS | Studiati come evoluzione produttiva; nella demo didattica si usano login locale, hash PBKDF2, header `X-User-Id` e HTTP locale |
+
+Non sono emersi nei materiali di laboratorio divieti incompatibili con l'architettura realizzata. Le tecnologie Java/Spark/JDBC sono usate nei laboratori come strumenti didattici; nel progetto sono state sostituite da strumenti equivalenti mantenendo gli stessi principi di rete, persistenza, concorrenza e comunicazione event-driven.
+
+## 8. Validazione
 
 I test automatici verificano:
 
@@ -201,20 +220,23 @@ node scripts/integration-test.js
 
 Il test di integrazione controlla API Gateway, tre microservizi, Edge Service, login dei quattro ruoli, Catalog Service, Match Service e Tournament Service.
 
+La versione aggiornata del test di integrazione verifica anche uno scenario end-to-end reale: creazione di un nuovo gioco di test, creazione di un attuatore, avvio di una partita, invio di un evento MQTT online, simulazione offline dell'edge, salvataggio nella coda JSON, ritorno online, sincronizzazione dell'evento, deduplicazione tramite UUID e aggiornamento finale dell'attuatore.
+
 La demo manuale mostra login, creazione tipo di gioco, configurazione edge/sensori/attuatori, avvio partita, simulazione MQTT, aggiornamento punteggio, funzionamento offline, sincronizzazione, torneo multi-locale e classifica.
 
-## 8. Sicurezza e scelte didattiche
+## 9. Sicurezza e scelte didattiche
 
 Per rendere il progetto facile da eseguire e spiegare:
 
-- le password demo sono in chiaro;
-- l'autenticazione usa l'header `X-User-Id`;
+- le password demo sono salvate nel database come hash PBKDF2;
+- il bootstrap migra automaticamente eventuali password legacy in chiaro verso `password_hash`;
+- l'autenticazione REST demo usa ancora l'header `X-User-Id` dopo il login;
 - i microservizi condividono lo stesso database;
 - non e configurato HTTPS.
 
-Queste non sono scelte consigliate per un prodotto reale. In produzione si userebbero password con hash, JWT, HTTPS, segreti esterni e database separati o ownership piu rigida.
+Queste scelte restano didattiche. In produzione si userebbero JWT o sessioni firmate, HTTPS, segreti esterni, rotazione delle credenziali e database separati o ownership piu rigida per ogni microservizio.
 
-## 9. Conclusione
+## 10. Conclusione
 
 Il progetto soddisfa le funzionalita richieste: giochi connessi, quattro ruoli, sensori, attuatori, edge offline, MQTT, REST, microservizi, partite individuali e a squadre, tornei multi-locale, classifiche, statistiche, test e demo.
 

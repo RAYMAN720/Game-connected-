@@ -51,6 +51,25 @@ function authHeaders(user) {
   return { 'x-user-id': String(user.id), accept: 'application/json' };
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitFor(name, action, timeoutMs = 15000, intervalMs = 700) {
+  const start = Date.now();
+  let lastError;
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const result = await action();
+      if (result) return result;
+    } catch (error) {
+      lastError = error;
+    }
+    await wait(intervalMs);
+  }
+  throw lastError || new Error(`Timeout durante: ${name}`);
+}
+
 async function main() {
   let platform;
   let localAdmin;
@@ -109,6 +128,114 @@ async function main() {
     assert(Array.isArray(tournaments), 'tournaments non e una lista');
     assert(Array.isArray(teams), 'teams non e una lista');
     assert(statistics && typeof statistics === 'object', 'statistiche non valide');
+  });
+
+  await test('Scenario reale: partita, MQTT, offline queue, deduplicazione e attuatore', async () => {
+    await jsonRequest(`${edgeBase}/connection`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ online: true })
+    });
+
+    const game = await jsonRequest(`${apiBase}/games`, {
+      method: 'POST',
+      headers: { ...authHeaders(localAdmin), 'content-type': 'application/json' },
+      body: JSON.stringify({
+        name: `Calciobalilla test ${Date.now()}`,
+        game_type_id: 1,
+        status: 'ONLINE'
+      })
+    });
+
+    const actuator = await jsonRequest(`${apiBase}/actuators`, {
+      method: 'POST',
+      headers: { ...authHeaders(localAdmin), 'content-type': 'application/json' },
+      body: JSON.stringify({
+        edge_device_id: 1,
+        game_id: game.id,
+        name: `Display test ${game.id}`,
+        actuator_type: 'SCOREBOARD'
+      })
+    });
+
+    const match = await jsonRequest(`${apiBase}/matches/start`, {
+      method: 'POST',
+      headers: { ...authHeaders(localAdmin), 'content-type': 'application/json' },
+      body: JSON.stringify({
+        game_id: game.id,
+        participant_mode: 'INDIVIDUAL',
+        player1_name: 'mario',
+        player2_name: 'luigi'
+      })
+    });
+    assert(match.status === 'LIVE', 'partita test non LIVE');
+
+    await jsonRequest(`${edgeBase}/events`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        game_id: game.id,
+        match_id: match.id,
+        event_type: 'GOAL_PLAYER_1',
+        player_name: 'mario',
+        description: 'Punto online da integrazione'
+      })
+    });
+
+    await waitFor('evento MQTT online', async () => {
+      const details = await jsonRequest(`${apiBase}/matches/${match.id}`, { headers: authHeaders(localAdmin) });
+      return details.match.score1 >= 1 && details.events.some((event) => event.description === 'Punto online da integrazione');
+    });
+
+    await jsonRequest(`${edgeBase}/connection`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ online: false })
+    });
+
+    const queued = await jsonRequest(`${edgeBase}/events`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        game_id: game.id,
+        match_id: match.id,
+        event_type: 'GOAL_PLAYER_2',
+        player_name: 'luigi',
+        description: 'Punto offline da integrazione'
+      })
+    });
+    assert(queued.event?.sync_status === 'PENDING', 'evento offline non marcato PENDING');
+
+    const offlineState = await jsonRequest(`${edgeBase}/state`);
+    assert(offlineState.forced_offline === true, 'edge non forzato offline');
+    assert(offlineState.queue.length >= 1, 'coda offline vuota');
+
+    await jsonRequest(`${edgeBase}/connection`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ online: true })
+    });
+
+    await waitFor('sincronizzazione evento offline', async () => {
+      const details = await jsonRequest(`${apiBase}/matches/${match.id}`, { headers: authHeaders(localAdmin) });
+      return details.match.score2 >= 1 && details.events.some((event) => event.description === 'Punto offline da integrazione');
+    }, 20000);
+
+    const syncedState = await waitFor('svuotamento coda edge', async () => {
+      const state = await jsonRequest(`${edgeBase}/state`);
+      return state.queue.length === 0 ? state : null;
+    }, 20000);
+    assert(syncedState.queue.length === 0, 'coda edge non svuotata');
+
+    const ended = await jsonRequest(`${apiBase}/matches/${match.id}/end`, {
+      method: 'POST',
+      headers: authHeaders(localAdmin)
+    });
+    assert(ended.match.status === 'FINISHED', 'partita non conclusa');
+
+    const actuators = await jsonRequest(`${apiBase}/actuators`, { headers: authHeaders(localAdmin) });
+    const updatedActuator = actuators.find((item) => Number(item.id) === Number(actuator.id));
+    assert(updatedActuator?.state?.startsWith('FINAL'), 'attuatore non aggiornato a FINAL');
   });
 
   console.log(`\nRisultato: ${passed} test superati, ${failed} test falliti.`);
