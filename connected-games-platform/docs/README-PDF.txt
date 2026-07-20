@@ -8,5 +8,4 @@ Il fascicolo dei diagrammi si trova in:
 - final/PlayConnect_Diagrammi.pdf
 - final/PlayConnect_Diagrammi.docx
 
-I documenti da 01 a 16 sono disponibili sia in Markdown sia in PDF.
 La descrizione OpenAPI è nel file openapi.yaml.
