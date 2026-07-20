@@ -1,2 +1,0 @@
-const express=require('express');const {requireAuth}=require('../middleware/auth');const c=require('../controllers/tournamentController');
-const router=express.Router();router.use(requireAuth);router.get('/',c.getTournaments);router.post('/',c.createTournament);router.get('/:id',c.getTournamentById);router.put('/:id',c.updateTournament);router.delete('/:id',c.deleteTournament);router.get('/:id/ranking',c.getTournamentRanking);router.post('/:id/matches',c.addMatchToTournament);module.exports=router;
