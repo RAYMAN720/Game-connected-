@@ -5,6 +5,8 @@
 - [x] Locali, giochi, edge, sensori e attuatori
 - [x] REST, MQTT QoS 1 e deduplicazione UUID
 - [x] Funzionamento offline e sincronizzazione
+- [x] Scenario Docker verificato con evento MQTT online, coda offline e attuatore
+- [x] Password demo migrate a hash PBKDF2 nel database
 - [x] Partite individuali e a squadre
 - [x] Tornei multi-locale, turni, calendario e classifica
 - [x] API Gateway e tre microservizi applicativi
@@ -13,5 +15,5 @@
 - [x] OpenAPI con 40 percorsi
 - [x] Casi d'uso testuali
 - [x] Diagrammi casi d'uso, dominio, package, implementazione e sequenza
-- [x] Test di componente, controlli strutturali e test di integrazione
+- [x] Test di componente, controlli strutturali e test di integrazione avanzato
 - [x] Relazione DOCX/PDF e procedura demo

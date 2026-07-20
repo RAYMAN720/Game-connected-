@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS locales (
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(100) NOT NULL UNIQUE,
-  password VARCHAR(100) NOT NULL,
+  password VARCHAR(100) NULL,
+  password_hash VARCHAR(255) NULL,
   role ENUM('PLATFORM_ADMIN','LOCAL_ADMIN','GAME_ADMIN','CLIENT') NOT NULL,
   locale_id INT NULL,
   CONSTRAINT fk_users_locale FOREIGN KEY (locale_id) REFERENCES locales(id) ON DELETE SET NULL
@@ -196,13 +197,13 @@ INSERT INTO locales (id, name, city, address) VALUES
   (2, 'Sala Giochi Centrale', 'Torino', 'Corso Francia 88'),
   (3, 'Casa di Mario', 'Milano', 'Via Milano 5');
 
-INSERT INTO users (id, username, password, role, locale_id) VALUES
-  (1, 'platform', 'platform123', 'PLATFORM_ADMIN', NULL),
-  (2, 'localadmin', 'local123', 'LOCAL_ADMIN', 1),
-  (3, 'client', 'client123', 'CLIENT', 1),
-  (4, 'luigi', 'luigi123', 'CLIENT', 1),
-  (5, 'mario', 'mario123', 'CLIENT', 1),
-  (6, 'gameadmin', 'game123', 'GAME_ADMIN', NULL);
+INSERT INTO users (id, username, password, password_hash, role, locale_id) VALUES
+  (1, 'platform', 'platform123', NULL, 'PLATFORM_ADMIN', NULL),
+  (2, 'localadmin', 'local123', NULL, 'LOCAL_ADMIN', 1),
+  (3, 'client', 'client123', NULL, 'CLIENT', 1),
+  (4, 'luigi', 'luigi123', NULL, 'CLIENT', 1),
+  (5, 'mario', 'mario123', NULL, 'CLIENT', 1),
+  (6, 'gameadmin', 'game123', NULL, 'GAME_ADMIN', NULL);
 
 INSERT INTO game_types (id, name, description, score_limit, supports_teams) VALUES
   (1, 'Calciobalilla', 'Goal rilevati da due sensori sulle porte.', 5, TRUE),

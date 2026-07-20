@@ -1,4 +1,5 @@
 const { query } = require('./db');
+const { hashPassword } = require('./utils/password');
 
 async function columnExists(tableName, columnName) {
   const rows = await query(
@@ -31,6 +32,8 @@ async function addIndexIfMissing(tableName, indexName, columns, unique = false) 
 }
 
 async function ensureSupportSchema() {
+  await addColumnIfMissing('users', 'password_hash', 'VARCHAR(255) NULL AFTER password');
+  await query(`ALTER TABLE users MODIFY COLUMN password VARCHAR(100) NULL`);
   await query(`ALTER TABLE users MODIFY COLUMN role ENUM('PLATFORM_ADMIN','LOCAL_ADMIN','GAME_ADMIN','CLIENT') NOT NULL`);
   await query(`ALTER TABLE games MODIFY COLUMN status ENUM('ONLINE','OFFLINE','IN_GAME','SYNC_PENDING') DEFAULT 'ONLINE'`);
   await query(`ALTER TABLE matches MODIFY COLUMN status ENUM('LIVE','FINISHED','SYNC_PENDING') DEFAULT 'LIVE'`);
@@ -205,6 +208,11 @@ async function ensureSupportSchema() {
   await query(`INSERT INTO users (username, password, role, locale_id)
     SELECT 'gameadmin', 'game123', 'GAME_ADMIN', NULL
     WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'gameadmin')`);
+
+  const legacyUsers = await query(`SELECT id,password FROM users WHERE password_hash IS NULL AND password IS NOT NULL`);
+  for (const user of legacyUsers) {
+    await query('UPDATE users SET password_hash=?, password=NULL WHERE id=?', [hashPassword(user.password), user.id]);
+  }
 
   await query(`INSERT INTO actuators (edge_device_id, game_id, name, actuator_type, state, mqtt_topic, status)
     SELECT 1, 1, 'Display punteggio', 'SCOREBOARD', 'IDLE', 'locales/1/games/1/actuators/1/commands', 'ACTIVE'

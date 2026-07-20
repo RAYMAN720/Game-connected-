@@ -1,4 +1,5 @@
 const { query } = require('../db');
+const { hashPassword } = require('../utils/password');
 
 function publicUser(user) {
   return { id: user.id, username: user.username, role: user.role, locale_id: user.locale_id };
@@ -8,7 +9,7 @@ async function usernameExists(username) {
   return rows.length > 0;
 }
 async function createUser(role, username, password, localeId) {
-  const result = await query('INSERT INTO users (username,password,role,locale_id) VALUES (?,?,?,?)', [username, password, role, localeId || null]);
+  const result = await query('INSERT INTO users (username,password,password_hash,role,locale_id) VALUES (?,NULL,?,?,?)', [username, hashPassword(password), role, localeId || null]);
   const rows = await query('SELECT id,username,role,locale_id FROM users WHERE id=?', [result.insertId]);
   return rows[0];
 }
