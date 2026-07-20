@@ -39,6 +39,17 @@ async function ensureSupportSchema() {
   await query(`ALTER TABLE matches MODIFY COLUMN status ENUM('LIVE','FINISHED','SYNC_PENDING') DEFAULT 'LIVE'`);
 
   await query(`
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      session_id VARCHAR(128) PRIMARY KEY,
+      user_id INT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME NOT NULL,
+      CONSTRAINT fk_user_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  await query(`
     CREATE TABLE IF NOT EXISTS game_types (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(100) NOT NULL UNIQUE,

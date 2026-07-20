@@ -1,5 +1,10 @@
+const crypto = require('crypto');
 const { query } = require('../db');
 const { verifyPassword } = require('../utils/password');
+
+function createSessionId() {
+  return crypto.randomBytes(32).toString('hex');
+}
 
 async function login(req, res, next) {
   try {
@@ -19,12 +24,32 @@ async function login(req, res, next) {
     }
 
     const { password: _password, password_hash: _passwordHash, ...publicUser } = users[0];
-    return res.json(publicUser);
+    const sessionId = createSessionId();
+    await query(
+      `INSERT INTO user_sessions (session_id, user_id, expires_at)
+       VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 8 HOUR))`,
+      [sessionId, publicUser.id]
+    );
+
+    return res.json({ ...publicUser, session_id: sessionId });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function logout(req, res, next) {
+  try {
+    const sessionId = req.header('x-session-id');
+    if (sessionId) {
+      await query('DELETE FROM user_sessions WHERE session_id = ?', [sessionId]);
+    }
+    return res.json({ message: 'Sessione chiusa' });
   } catch (error) {
     return next(error);
   }
 }
 
 module.exports = {
-  login
+  login,
+  logout
 };

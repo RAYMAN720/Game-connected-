@@ -30,6 +30,9 @@ async function apiRequest(path, options = {}) {
     const user = getStoredUser();
     if (user) {
       headers['X-User-Id'] = user.id;
+      if (user.session_id) {
+        headers['X-Session-Id'] = user.session_id;
+      }
     }
   }
 

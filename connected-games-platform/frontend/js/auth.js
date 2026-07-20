@@ -10,7 +10,7 @@ function requireUser(allowedRoles=[]){
   const badge=$('#user-badge');if(badge)badge.textContent=`${user.username} - ${roleLabel(user.role)}`;return user;
 }
 function roleLabel(role){return{PLATFORM_ADMIN:'Amministratore piattaforma',LOCAL_ADMIN:'Amministratore locale',GAME_ADMIN:'Amministratore gioco',CLIENT:'Giocatore'}[role]||role;}
-function logout(){clearStoredUser();window.location.href='login.html';}
+async function logout(){try{await apiPost('/auth/logout',{});}catch(error){}clearStoredUser();window.location.href='login.html';}
 function renderSidebar(activePage){
   const user=currentUser(),sidebar=$('#sidebar');if(!user||!sidebar)return;
   const linksByRole={

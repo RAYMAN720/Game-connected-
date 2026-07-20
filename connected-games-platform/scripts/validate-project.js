@@ -86,6 +86,7 @@ for (const item of [
   'participant_mode',
   'event_value',
   'payload_json',
+  'user_sessions',
   'DART_THROW_PLAYER_1',
   'POINT_PLAYER_1'
 ]) {
@@ -124,6 +125,11 @@ for (const item of [
 const mqttClient = read('backend/mqttClient.js');
 for (const item of ['heartbeat', 'last_seen', 'last_sync', 'OFFLINE']) {
   check(mqttClient.includes(item), `MQTT client missing ${item}`);
+}
+
+const authMiddleware = read('backend/middleware/auth.js');
+for (const item of ['x-session-id', 'user_sessions', 'expires_at']) {
+  check(authMiddleware.includes(item), `Auth middleware missing ${item}`);
 }
 
 const simulator = read('simulator/simulator.js');
