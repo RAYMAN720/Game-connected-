@@ -75,6 +75,6 @@ Il test di integrazione richiede i container Docker avviati.
 La guida iniziale si trova in `START_HERE.md`.
 
 ## Autore 
-TCHAMBA SADIO RAYANN JOVANY
-MAURICE BEACK 
-ANDRE JUNIOR NGUETCHOUO BOUYOM 
+`TCHAMBA SADIO RAYANN JOVANY`
+`MAURICE BEACK` 
+`ANDRE JUNIOR NGUETCHOUO BOUYOM `
