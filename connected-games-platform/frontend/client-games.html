@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client · Giochi</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="sidebar"></aside>
+    <main class="main-content">
+      <header class="topbar">
+        <div class="page-title">
+          <h1>Giochi disponibili</h1>
+          <p>Giochi connessi attualmente visibili ai giocatori.</p>
+        </div>
+        <span id="user-badge" class="badge user-badge"></span>
+      </header>
+
+      <section id="client-games-grid" class="game-grid"></section>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/games.js"></script>
+  <script src="js/client.js"></script>
+</body>
+</html>

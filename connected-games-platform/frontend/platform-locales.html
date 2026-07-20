@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Amministratore piattaforma · Locali</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="sidebar"></aside>
+    <main class="main-content">
+      <header class="topbar">
+        <div class="page-title">
+          <h1>Locali</h1>
+          <p>Crea e gestisci i luoghi fisici collegati alla piattaforma.</p>
+        </div>
+        <span id="user-badge" class="badge user-badge"></span>
+      </header>
+
+      <section class="panel">
+        <div class="panel-title">
+          <h2>Nuovo locale e amministratore locale</h2>
+        </div>
+        <form id="locale-form" class="form-grid">
+          <div class="field">
+            <label for="locale-name">Nome</label>
+            <input id="locale-name" name="name" required>
+          </div>
+          <div class="field">
+            <label for="locale-city">Citta</label>
+            <input id="locale-city" name="city" required>
+          </div>
+          <div class="field">
+            <label for="locale-address">Indirizzo</label>
+            <input id="locale-address" name="address" required>
+          </div>
+          <div class="field">
+            <label for="local-admin-username">Nome utente amministratore locale</label>
+            <input id="local-admin-username" name="admin_username" required>
+          </div>
+          <div class="field">
+            <label for="local-admin-password">Password amministratore locale</label>
+            <input id="local-admin-password" name="admin_password" required>
+          </div>
+          <button class="btn" type="submit">Crea locale e amministratore</button>
+        </form>
+      </section>
+
+      <section class="panel" style="margin-top: 18px;">
+        <div class="panel-title">
+          <h2>Tutti i locali</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Citta</th>
+                <th>Indirizzo</th>
+                <th>Amministratore locale</th>
+                <th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody id="locales-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/platform-admin.js"></script>
+</body>
+</html>

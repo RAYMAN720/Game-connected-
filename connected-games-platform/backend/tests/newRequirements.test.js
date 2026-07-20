@@ -1,0 +1,21 @@
+const test=require('node:test');const assert=require('node:assert/strict');
+const {canViewMatch,canManageCatalog}=require('../utils/accessRules');
+const {validateGameTypeInput,validateTournamentInput,validateMatchParticipants,validateSensorInput}=require('../utils/validationRules');
+const {isTournamentMatchCompatible,shouldAutoLinkMatchToTournament,calculateTournamentRanking}=require('../utils/tournamentRules');
+
+test('game admin can inspect matches and manage game catalogue',()=>{const user={role:'GAME_ADMIN'};assert.equal(canViewMatch(user,{locale_id:1}),true);assert.equal(canManageCatalog(user),true);});
+test('local admin cannot manage global game type catalogue',()=>assert.equal(canManageCatalog({role:'LOCAL_ADMIN'}),false));
+test('valid game type has no validation errors',()=>assert.deepEqual(validateGameTypeInput({name:'Bocce',description:'Punti con sensori',score_limit:13}),[]));
+test('game type rejects missing description',()=>assert.ok(validateGameTypeInput({name:'Bocce'}).length>0));
+test('game type rejects negative score limit',()=>assert.ok(validateGameTypeInput({name:'Bocce',description:'x',score_limit:-1}).length>0));
+test('tournament requires at least one location',()=>assert.ok(validateTournamentInput({name:'Cup',game_type_id:1,participant_mode:'TEAM',locale_ids:[]}).length>0));
+test('tournament accepts multiple locations and team mode',()=>assert.deepEqual(validateTournamentInput({name:'Cup',game_type_id:1,participant_mode:'TEAM',locale_ids:[1,2]}),[]));
+test('tournament rejects inverted dates',()=>assert.ok(validateTournamentInput({name:'Cup',game_type_id:1,participant_mode:'INDIVIDUAL',locale_ids:[1],start_date:'2026-07-20',end_date:'2026-07-10'}).length>0));
+test('individual match requires two different players',()=>assert.ok(validateMatchParticipants({participant_mode:'INDIVIDUAL',player1_name:'mario',player2_name:'mario'}).length>0));
+test('team match accepts two different team ids',()=>assert.deepEqual(validateMatchParticipants({participant_mode:'TEAM',team1_id:1,team2_id:2}),[]));
+test('team match rejects same team twice',()=>assert.ok(validateMatchParticipants({participant_mode:'TEAM',team1_id:1,team2_id:1}).length>0));
+test('sensor configuration requires device game name and event',()=>assert.ok(validateSensorInput({edge_device_id:1,game_id:1,name:'Porta'}).length>0));
+test('valid sensor configuration passes',()=>assert.deepEqual(validateSensorInput({edge_device_id:1,game_id:1,name:'Porta',sensor_type:'GOAL_PLAYER_1'}),[]));
+test('tournament match compatibility checks type mode and location',()=>{const match={status:'FINISHED',game_type:'Calciobalilla',participant_mode:'TEAM',locale_id:1};const tournament={game_type:'Calciobalilla',participant_mode:'TEAM'};assert.equal(isTournamentMatchCompatible(match,tournament,[1,2]),true);assert.equal(isTournamentMatchCompatible(match,tournament,[2]),false);});
+test('auto link additionally requires active tournament',()=>{const match={status:'FINISHED',game_type:'Calciobalilla',participant_mode:'INDIVIDUAL',locale_id:1};assert.equal(shouldAutoLinkMatchToTournament(match,{status:'DRAFT',game_type:'Calciobalilla',participant_mode:'INDIVIDUAL'},[1]),false);});
+test('team names are ranked exactly like players',()=>{const rows=calculateTournamentRanking([{status:'FINISHED',player1_name:'Red Lions',player2_name:'Blue Rockets',score1:5,score2:2}]);assert.equal(rows[0].player_name,'Red Lions');assert.equal(rows[0].points,3);});

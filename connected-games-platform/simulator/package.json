@@ -1,0 +1,8 @@
+{
+  "name": "connected-games-edge-service",
+  "version": "2.0.0",
+  "description": "Dispositivo edge didattico con coda offline, sensori simulati e attuatori",
+  "main": "simulator.js",
+  "scripts": {"start":"node simulator.js","check":"node --check simulator.js"},
+  "dependencies": {"express":"^4.21.2","mqtt":"^5.10.3"}
+}

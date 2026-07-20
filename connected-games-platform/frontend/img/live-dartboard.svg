@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Tabellone punteggio live</title>
+  <desc id="desc">Visuale del punteggio live con bersaglio e impulso sensore.</desc>
+  <rect width="720" height="420" rx="28" fill="#07111d"/>
+  <circle cx="206" cy="210" r="132" fill="#101824" stroke="#f4f8ff" stroke-width="8"/>
+  <circle cx="206" cy="210" r="106" fill="#ff3d57"/><circle cx="206" cy="210" r="78" fill="#f4f8ff"/><circle cx="206" cy="210" r="50" fill="#19e6d2"/><circle cx="206" cy="210" r="18" fill="#8cff3a"/>
+  <g fill="#f4f8ff" font-family="Arial, sans-serif" font-weight="900">
+    <text x="420" y="168" font-size="82" fill="#8cff3a">05</text>
+    <text x="540" y="168" font-size="32" fill="#97a8bd">VS</text>
+    <text x="590" y="168" font-size="82" fill="#ff3d57">03</text>
+    <text x="420" y="230" font-size="22" fill="#19e6d2">MQTT EVENT STREAM</text>
+  </g>
+  <g stroke="#8cff3a" stroke-width="5" stroke-linecap="round" opacity=".9">
+    <path d="M420 280h210"/><path d="M420 315h160"/><path d="M420 350h195"/>
+  </g>
+</svg>

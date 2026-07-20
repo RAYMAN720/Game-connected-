@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title desc">
+  <title id="title">Immagine gioco connesso</title>
+  <desc id="desc">Gioco fisico connesso stilizzato con anelli di segnale MQTT.</desc>
+  <rect width="640" height="360" fill="#101722"/>
+  <rect x="96" y="116" width="280" height="150" rx="24" fill="#1c2430" stroke="#5da8ff" stroke-width="8"/>
+  <circle cx="164" cy="191" r="28" fill="#40d6c8"/>
+  <circle cx="246" cy="191" r="28" fill="#f6bd60"/>
+  <circle cx="328" cy="191" r="28" fill="#70d47b"/>
+  <path d="M422 181c26-26 69-26 96 0M396 154c41-41 108-41 150 0M370 128c56-56 147-56 204 0" fill="none" stroke="#b79cff" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="468" cy="230" r="18" fill="#eef4ff"/>
+</svg>

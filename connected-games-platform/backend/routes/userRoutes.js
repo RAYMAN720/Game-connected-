@@ -1,0 +1,2 @@
+const express=require('express');const {requireAuth}=require('../middleware/auth');const c=require('../controllers/userController');
+const router=express.Router();router.use(requireAuth);router.get('/',c.getUsers);router.post('/local-admin',c.createLocalAdmin);router.post('/game-admin',c.createGameAdmin);router.post('/client',c.createClient);router.put('/:id',c.updateUser);router.delete('/:id',c.deleteUser);module.exports=router;
