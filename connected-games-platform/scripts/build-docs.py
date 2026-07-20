@@ -857,4 +857,6 @@ def build_report():
 
 report_docx = build_report()
 shutil.copy2(report_docx, DOCS / 'PlayConnect_Relazione_Finale.docx')
+for markdown_file in DOCS.glob('*.md'):
+    markdown_file.unlink()
 print(report_docx)

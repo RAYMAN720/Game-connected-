@@ -46,7 +46,6 @@ const requiredFiles = [
   'backend/controllers/internalController.js',
   'backend/routes/internalRoutes.js',
   'backend/tests/gameRules.test.js',
-  'docs/00-relazione-finale.md',
   'docs/00-relazione-finale.pdf',
   'docs/openapi.yaml',
   'docs/final/PlayConnect_Relazione_Finale.docx',
