@@ -106,7 +106,7 @@ function renderLiveMatch() {
   $('#score2').textContent = liveMatch.score2;
   $('#live-status').className = `badge status-${String(liveMatch.status).toLowerCase()}`;
   $('#live-status').textContent = statusLabel(liveMatch.status);
-  $('#live-subtitle').textContent = `Partita #${liveMatch.id} - ${formatDate(liveMatch.started_at)}`;
+  $('#live-subtitle').textContent = `Partita #${liveMatch.id} - ${formatDate(liveMatch.started_at)}${liveMatch.score_limit ? ` - limite ${liveMatch.score_limit}` : ''}`;
   $('#live-sync-note').textContent = `Ultima sincronizzazione: ${formatDate(new Date().toISOString())}`;
   $('#mqtt-topic-preview').textContent = `locales/${liveMatch.locale_id}/games/${liveMatch.game_id}/matches/${liveMatch.id}/events`;
 
@@ -132,7 +132,7 @@ function renderLiveMatch() {
     ? liveEvents.map((event) => `
       <div class="event-item timeline-item ${eventClass(event.event_type)}">
         <strong>${escapeHtml(event.event_type)} ${event.player_name ? `- ${escapeHtml(event.player_name)}` : ''}</strong>
-        <span class="meta">${escapeHtml(event.description)} - ${formatDate(event.created_at)}</span>
+        <span class="meta">${escapeHtml(event.description)}${event.event_value ? ` - valore: ${event.event_value}` : ''} - ${formatDate(event.created_at)}</span>
         <span class="badge status-${String(event.sync_status || 'SYNCED').toLowerCase()}">${escapeHtml(statusLabel(event.sync_status || 'SYNCED'))}</span>
       </div>
     `).join('')
@@ -140,15 +140,10 @@ function renderLiveMatch() {
 }
 
 function eventClass(eventType) {
-  if (String(eventType).includes('GOAL')) {
-    return 'event-goal';
-  }
-  if (eventType === 'MATCH_START') {
-    return 'event-live';
-  }
-  if (eventType === 'MATCH_END') {
-    return 'event-finished';
-  }
+  if (!liveMatch) return '';
+  if ([liveMatch.score_event_player1, liveMatch.score_event_player2].includes(eventType)) return 'event-goal';
+  if (eventType === liveMatch.start_event) return 'event-live';
+  if (eventType === liveMatch.end_event) return 'event-finished';
   return '';
 }
 

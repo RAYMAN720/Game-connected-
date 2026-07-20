@@ -6,9 +6,17 @@ function validateGameTypeInput(input) {
   const errors = [];
   if (!requiredText(input?.name)) errors.push('Il nome del tipo di gioco e obbligatorio');
   if (!requiredText(input?.description)) errors.push('La descrizione e obbligatoria');
-  if (input?.score_limit !== undefined && input?.score_limit !== null && Number(input.score_limit) <= 0) {
+  if (input?.score_limit !== undefined && input?.score_limit !== null && input?.score_limit !== '' && Number(input.score_limit) <= 0) {
     errors.push('Il limite di punteggio deve essere maggiore di zero');
   }
+  const events = [
+    input?.start_event || 'MATCH_START',
+    input?.score_event_player1 || 'GOAL_PLAYER_1',
+    input?.score_event_player2 || 'GOAL_PLAYER_2',
+    input?.end_event || 'MATCH_END'
+  ].map((value) => String(value).trim());
+  if (new Set(events).size !== events.length) errors.push('Gli eventi del tipo di gioco devono essere diversi');
+  if (events.some((value) => !/^[A-Z0-9_]+$/.test(value))) errors.push('I nomi degli eventi possono contenere solo lettere maiuscole, numeri e underscore');
   return errors;
 }
 

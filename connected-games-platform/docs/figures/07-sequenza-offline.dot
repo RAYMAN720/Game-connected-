@@ -1,0 +1,28 @@
+digraph G {
+
+graph [fontname="Arial", bgcolor="white", pad="0.25", nodesep="0.45", ranksep="0.65"];
+node [fontname="Arial", fontsize=10, shape=box, style="rounded,filled", fillcolor="#F4F7FB", color="#34506B", fontcolor="#172B3A", margin="0.10,0.07"];
+edge [fontname="Arial", fontsize=9, color="#526D82", fontcolor="#334E5E", arrowsize=0.7];
+
+rankdir=LR;
+node [shape=box, width=1.5];
+sensor [label="Sensore simulato"];
+edgeNode [label="Edge Service"];
+queue [shape=note, label="offline-queue.json"];
+broker [label="Broker MQTT"];
+match [label="Match Service"];
+db [shape=cylinder, label="MySQL"];
+sensor -> edgeNode [label="evento"];
+edgeNode -> broker [label="publish"];
+broker -> edgeNode [label="connessione assente", style=dashed];
+edgeNode -> queue [label="salva PENDING"];
+edgeNode -> edgeNode [label="ritorno online"];
+edgeNode -> broker [label="ripubblica SYNCED"];
+broker -> match [label="evento UUID"];
+match -> db [label="controllo duplicato"];
+match -> db [label="salvataggio e punteggio"];
+edgeNode -> queue [label="rimuove evento sincronizzato"];
+edgeNode -> broker [label="heartbeat queue_size=0"];
+broker -> match [label="heartbeat"];
+match -> db [label="edge ONLINE e last_sync"];
+}

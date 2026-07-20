@@ -133,9 +133,11 @@ CREATE TABLE IF NOT EXISTS match_events (
   id INT AUTO_INCREMENT PRIMARY KEY,
   match_id INT NOT NULL,
   event_uuid VARCHAR(100) UNIQUE NULL,
-  event_type VARCHAR(50) NOT NULL,
+  event_type VARCHAR(80) NOT NULL,
   player_name VARCHAR(100) NULL,
   description VARCHAR(255) NOT NULL,
+  event_value INT NULL,
+  payload_json JSON NULL,
   sync_status ENUM('PENDING','SYNCED','FAILED') DEFAULT 'SYNCED',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   received_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -205,19 +207,31 @@ INSERT INTO users (id, username, password, password_hash, role, locale_id) VALUE
   (5, 'mario', 'mario123', NULL, 'CLIENT', 1),
   (6, 'gameadmin', 'game123', NULL, 'GAME_ADMIN', NULL);
 
-INSERT INTO game_types (id, name, description, score_limit, supports_teams) VALUES
-  (1, 'Calciobalilla', 'Goal rilevati da due sensori sulle porte.', 5, TRUE),
-  (2, 'Freccette', 'Ogni tiro genera un evento con il punteggio.', 301, TRUE),
-  (3, 'Bocce', 'I sensori registrano la posizione e il punto assegnato.', 13, TRUE),
-  (4, 'Monopoli', 'Pulsanti software registrano gli eventi principali.', NULL, FALSE);
+INSERT INTO game_types
+  (id, name, description, start_event, score_event_player1, score_event_player2, end_event, score_limit, supports_teams)
+VALUES
+  (1, 'Calciobalilla', 'Goal rilevati da due sensori sulle porte.', 'MATCH_START', 'GOAL_PLAYER_1', 'GOAL_PLAYER_2', 'MATCH_END', 5, TRUE),
+  (2, 'Freccette', 'Ogni tiro invia il valore ottenuto dal giocatore.', 'DARTS_START', 'DART_THROW_PLAYER_1', 'DART_THROW_PLAYER_2', 'DARTS_END', 301, TRUE),
+  (3, 'Bocce', 'I sensori assegnano uno o piu punti al termine della manche.', 'BOCCE_START', 'POINT_PLAYER_1', 'POINT_PLAYER_2', 'BOCCE_END', 13, TRUE),
+  (4, 'Monopoli', 'I pulsanti software registrano gli eventi principali della partita.', 'MONOPOLY_START', 'EVENT_PLAYER_1', 'EVENT_PLAYER_2', 'MONOPOLY_END', NULL, FALSE);
 
 INSERT INTO sensor_templates (game_type_id, name, event_type, description) VALUES
   (1, 'Pulsante inizio', 'MATCH_START', 'Avvia la partita'),
   (1, 'Sensore porta 1', 'GOAL_PLAYER_1', 'Aggiunge un goal al partecipante 1'),
   (1, 'Sensore porta 2', 'GOAL_PLAYER_2', 'Aggiunge un goal al partecipante 2'),
   (1, 'Pulsante fine', 'MATCH_END', 'Termina la partita'),
-  (2, 'Tiro giocatore 1', 'GOAL_PLAYER_1', 'Aggiunge un punto dimostrativo al giocatore 1'),
-  (2, 'Tiro giocatore 2', 'GOAL_PLAYER_2', 'Aggiunge un punto dimostrativo al giocatore 2');
+  (2, 'Pulsante inizio freccette', 'DARTS_START', 'Avvia una partita di freccette'),
+  (2, 'Tiro giocatore 1', 'DART_THROW_PLAYER_1', 'Invia il valore del tiro del giocatore 1'),
+  (2, 'Tiro giocatore 2', 'DART_THROW_PLAYER_2', 'Invia il valore del tiro del giocatore 2'),
+  (2, 'Pulsante fine freccette', 'DARTS_END', 'Termina la partita di freccette'),
+  (3, 'Inizio manche bocce', 'BOCCE_START', 'Avvia una partita di bocce'),
+  (3, 'Punto squadra 1', 'POINT_PLAYER_1', 'Assegna i punti alla squadra 1'),
+  (3, 'Punto squadra 2', 'POINT_PLAYER_2', 'Assegna i punti alla squadra 2'),
+  (3, 'Fine partita bocce', 'BOCCE_END', 'Termina la partita di bocce'),
+  (4, 'Inizio Monopoli', 'MONOPOLY_START', 'Avvia la partita'),
+  (4, 'Evento partecipante 1', 'EVENT_PLAYER_1', 'Registra un evento del partecipante 1'),
+  (4, 'Evento partecipante 2', 'EVENT_PLAYER_2', 'Registra un evento del partecipante 2'),
+  (4, 'Fine Monopoli', 'MONOPOLY_END', 'Termina la partita');
 
 INSERT INTO games (id, locale_id, game_type_id, name, type, status) VALUES
   (1, 1, 1, 'Calciobalilla verde', 'Calciobalilla', 'ONLINE'),
@@ -232,11 +246,16 @@ INSERT INTO sensors (id, edge_device_id, game_id, name, type, sensor_type, mqtt_
   (1, 1, 1, 'Pulsante avvio', 'MATCH_START', 'MATCH_START', 'locales/1/games/1/matches/{matchId}/events', 'ACTIVE'),
   (2, 1, 1, 'Sensore goal giocatore 1', 'GOAL_PLAYER_1', 'GOAL_PLAYER_1', 'locales/1/games/1/matches/{matchId}/events', 'ACTIVE'),
   (3, 1, 1, 'Sensore goal giocatore 2', 'GOAL_PLAYER_2', 'GOAL_PLAYER_2', 'locales/1/games/1/matches/{matchId}/events', 'ACTIVE'),
-  (4, 1, 1, 'Pulsante fine', 'MATCH_END', 'MATCH_END', 'locales/1/games/1/matches/{matchId}/events', 'ACTIVE');
+  (4, 1, 1, 'Pulsante fine', 'MATCH_END', 'MATCH_END', 'locales/1/games/1/matches/{matchId}/events', 'ACTIVE'),
+  (5, 1, 2, 'Avvio freccette', 'DARTS_START', 'DARTS_START', 'locales/1/games/2/matches/{matchId}/events', 'ACTIVE'),
+  (6, 1, 2, 'Tiro giocatore 1', 'DART_THROW_PLAYER_1', 'DART_THROW_PLAYER_1', 'locales/1/games/2/matches/{matchId}/events', 'ACTIVE'),
+  (7, 1, 2, 'Tiro giocatore 2', 'DART_THROW_PLAYER_2', 'DART_THROW_PLAYER_2', 'locales/1/games/2/matches/{matchId}/events', 'ACTIVE'),
+  (8, 1, 2, 'Fine freccette', 'DARTS_END', 'DARTS_END', 'locales/1/games/2/matches/{matchId}/events', 'ACTIVE');
 
 INSERT INTO actuators (id, edge_device_id, game_id, name, actuator_type, state, mqtt_topic, status) VALUES
   (1, 1, 1, 'Display punteggio', 'SCOREBOARD', 'IDLE', 'locales/1/games/1/actuators/1/commands', 'ACTIVE'),
-  (2, 1, 1, 'Luce partita', 'LED', 'OFF', 'locales/1/games/1/actuators/2/commands', 'ACTIVE');
+  (2, 1, 1, 'Luce partita', 'LED', 'OFF', 'locales/1/games/1/actuators/2/commands', 'ACTIVE'),
+  (3, 1, 2, 'Display freccette', 'SCOREBOARD', 'IDLE', 'locales/1/games/2/actuators/3/commands', 'ACTIVE');
 
 INSERT INTO teams (id, name, locale_id) VALUES
   (1, 'Red Lions', 1),

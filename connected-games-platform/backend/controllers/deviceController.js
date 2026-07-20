@@ -134,6 +134,35 @@ async function createActuator(req, res, next) {
   } catch (error) { return next(error); }
 }
 
+
+async function updateActuator(req, res, next) {
+  try {
+    const rows = await query(`SELECT a.*,d.locale_id FROM actuators a JOIN edge_devices d ON d.id=a.edge_device_id WHERE a.id=?`, [req.params.id]);
+    if (!rows.length) return res.status(404).json({ message: 'Attuatore non trovato' });
+    if (req.user.role === 'LOCAL_ADMIN' && Number(req.user.locale_id) !== Number(rows[0].locale_id)) return res.status(403).json({ message: 'Non autorizzato' });
+    if (!['PLATFORM_ADMIN','LOCAL_ADMIN','GAME_ADMIN'].includes(req.user.role)) return res.status(403).json({ message: 'Non autorizzato' });
+    const name = req.body.name || rows[0].name;
+    const actuatorType = req.body.actuator_type || rows[0].actuator_type;
+    const topic = req.body.mqtt_topic || rows[0].mqtt_topic;
+    const status = req.body.status || rows[0].status;
+    if (!['ACTIVE','INACTIVE','OFFLINE'].includes(status)) return res.status(400).json({ message: 'Stato attuatore non valido' });
+    await query('UPDATE actuators SET name=?,actuator_type=?,mqtt_topic=?,status=? WHERE id=?', [name,actuatorType,topic,status,req.params.id]);
+    const updated = await query('SELECT * FROM actuators WHERE id=?', [req.params.id]);
+    return res.json(updated[0]);
+  } catch (error) { return next(error); }
+}
+
+async function deleteActuator(req, res, next) {
+  try {
+    const rows = await query(`SELECT a.id,d.locale_id FROM actuators a JOIN edge_devices d ON d.id=a.edge_device_id WHERE a.id=?`, [req.params.id]);
+    if (!rows.length) return res.status(404).json({ message: 'Attuatore non trovato' });
+    if (req.user.role === 'LOCAL_ADMIN' && Number(req.user.locale_id) !== Number(rows[0].locale_id)) return res.status(403).json({ message: 'Non autorizzato' });
+    if (!['PLATFORM_ADMIN','LOCAL_ADMIN','GAME_ADMIN'].includes(req.user.role)) return res.status(403).json({ message: 'Non autorizzato' });
+    await query('DELETE FROM actuators WHERE id=?', [req.params.id]);
+    return res.json({ message: 'Attuatore eliminato' });
+  } catch (error) { return next(error); }
+}
+
 async function setActuatorState(req, res, next) {
   try {
     const rows = await query(`SELECT a.*,d.locale_id FROM actuators a JOIN edge_devices d ON d.id=a.edge_device_id WHERE a.id=?`, [req.params.id]);
@@ -146,4 +175,4 @@ async function setActuatorState(req, res, next) {
   } catch (error) { return next(error); }
 }
 
-module.exports = { getDevices, createDevice, updateDevice, deleteDevice, getSensors, createSensor, updateSensor, deleteSensor, getActuators, createActuator, setActuatorState };
+module.exports = { getDevices, createDevice, updateDevice, deleteDevice, getSensors, createSensor, updateSensor, deleteSensor, getActuators, createActuator, updateActuator, deleteActuator, setActuatorState };

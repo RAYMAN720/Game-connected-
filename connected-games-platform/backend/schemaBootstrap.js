@@ -137,6 +137,9 @@ async function ensureSupportSchema() {
   await addColumnIfMissing('matches', 'team1_id', 'INT NULL AFTER player2_id');
   await addColumnIfMissing('matches', 'team2_id', 'INT NULL AFTER team1_id');
   await addColumnIfMissing('match_events', 'event_uuid', 'VARCHAR(100) NULL');
+  await addColumnIfMissing('match_events', 'event_value', 'INT NULL');
+  await addColumnIfMissing('match_events', 'payload_json', 'JSON NULL');
+  await query(`ALTER TABLE match_events MODIFY COLUMN event_type VARCHAR(80) NOT NULL`);
   await addColumnIfMissing('match_events', 'sync_status', "ENUM('PENDING','SYNCED','FAILED') DEFAULT 'SYNCED'");
   await addColumnIfMissing('match_events', 'received_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
   await addIndexIfMissing('match_events', 'unique_match_event_uuid', 'event_uuid', true);
@@ -195,13 +198,42 @@ async function ensureSupportSchema() {
   await addColumnIfMissing('tournament_matches', 'round_number', 'INT NOT NULL DEFAULT 1');
   await addColumnIfMissing('tournament_matches', 'scheduled_at', 'DATETIME NULL');
 
-  await query(`INSERT INTO game_types (id, name, description, score_limit, supports_teams)
+  await query(`INSERT INTO game_types
+    (id, name, description, start_event, score_event_player1, score_event_player2, end_event, score_limit, supports_teams)
     VALUES
-      (1, 'Calciobalilla', 'Goal rilevati da due sensori sulle porte.', 5, TRUE),
-      (2, 'Freccette', 'Ogni tiro genera un evento con il punteggio.', 301, TRUE),
-      (3, 'Bocce', 'I sensori registrano la posizione e il punto assegnato.', 13, TRUE),
-      (4, 'Monopoli', 'Pulsanti software registrano gli eventi principali.', NULL, FALSE)
-    ON DUPLICATE KEY UPDATE description = VALUES(description)`);
+      (1, 'Calciobalilla', 'Goal rilevati da due sensori sulle porte.', 'MATCH_START', 'GOAL_PLAYER_1', 'GOAL_PLAYER_2', 'MATCH_END', 5, TRUE),
+      (2, 'Freccette', 'Ogni tiro invia il valore ottenuto dal giocatore.', 'DARTS_START', 'DART_THROW_PLAYER_1', 'DART_THROW_PLAYER_2', 'DARTS_END', 301, TRUE),
+      (3, 'Bocce', 'I sensori assegnano uno o piu punti al termine della manche.', 'BOCCE_START', 'POINT_PLAYER_1', 'POINT_PLAYER_2', 'BOCCE_END', 13, TRUE),
+      (4, 'Monopoli', 'I pulsanti software registrano gli eventi principali della partita.', 'MONOPOLY_START', 'EVENT_PLAYER_1', 'EVENT_PLAYER_2', 'MONOPOLY_END', NULL, FALSE)
+    ON DUPLICATE KEY UPDATE
+      description=VALUES(description),start_event=VALUES(start_event),
+      score_event_player1=VALUES(score_event_player1),score_event_player2=VALUES(score_event_player2),
+      end_event=VALUES(end_event),score_limit=VALUES(score_limit),supports_teams=VALUES(supports_teams)`);
+
+  const templates = [
+    [1, 'Pulsante inizio', 'MATCH_START', 'Avvia la partita'],
+    [1, 'Sensore porta 1', 'GOAL_PLAYER_1', 'Aggiunge un goal al partecipante 1'],
+    [1, 'Sensore porta 2', 'GOAL_PLAYER_2', 'Aggiunge un goal al partecipante 2'],
+    [1, 'Pulsante fine', 'MATCH_END', 'Termina la partita'],
+    [2, 'Pulsante inizio freccette', 'DARTS_START', 'Avvia una partita di freccette'],
+    [2, 'Tiro giocatore 1', 'DART_THROW_PLAYER_1', 'Invia il valore del tiro del giocatore 1'],
+    [2, 'Tiro giocatore 2', 'DART_THROW_PLAYER_2', 'Invia il valore del tiro del giocatore 2'],
+    [2, 'Pulsante fine freccette', 'DARTS_END', 'Termina la partita di freccette'],
+    [3, 'Inizio manche bocce', 'BOCCE_START', 'Avvia una partita di bocce'],
+    [3, 'Punto squadra 1', 'POINT_PLAYER_1', 'Assegna i punti alla squadra 1'],
+    [3, 'Punto squadra 2', 'POINT_PLAYER_2', 'Assegna i punti alla squadra 2'],
+    [3, 'Fine partita bocce', 'BOCCE_END', 'Termina la partita di bocce'],
+    [4, 'Inizio Monopoli', 'MONOPOLY_START', 'Avvia la partita'],
+    [4, 'Evento partecipante 1', 'EVENT_PLAYER_1', 'Registra un evento del partecipante 1'],
+    [4, 'Evento partecipante 2', 'EVENT_PLAYER_2', 'Registra un evento del partecipante 2'],
+    [4, 'Fine Monopoli', 'MONOPOLY_END', 'Termina la partita']
+  ];
+  for (const template of templates) {
+    await query(`INSERT INTO sensor_templates (game_type_id,name,event_type,description)
+      SELECT ?,?,?,? WHERE NOT EXISTS (
+        SELECT 1 FROM sensor_templates WHERE game_type_id=? AND event_type=?
+      )`, [...template, template[0], template[2]]);
+  }
 
   await query(`UPDATE games g JOIN game_types gt ON gt.name = g.type SET g.game_type_id = gt.id WHERE g.game_type_id IS NULL`);
 
@@ -219,6 +251,27 @@ async function ensureSupportSchema() {
     WHERE EXISTS (SELECT 1 FROM edge_devices WHERE id = 1)
       AND EXISTS (SELECT 1 FROM games WHERE id = 1)
       AND NOT EXISTS (SELECT 1 FROM actuators WHERE edge_device_id = 1 AND game_id = 1 AND actuator_type = 'SCOREBOARD')`);
+
+  const dartSensors = [
+    ['Avvio freccette', 'DARTS_START'],
+    ['Tiro giocatore 1', 'DART_THROW_PLAYER_1'],
+    ['Tiro giocatore 2', 'DART_THROW_PLAYER_2'],
+    ['Fine freccette', 'DARTS_END']
+  ];
+  for (const [name, eventType] of dartSensors) {
+    await query(`INSERT INTO sensors (edge_device_id,game_id,name,type,sensor_type,mqtt_topic,status)
+      SELECT 1,2,?,?,?,'locales/1/games/2/matches/{matchId}/events','ACTIVE'
+      WHERE EXISTS (SELECT 1 FROM edge_devices WHERE id=1)
+        AND EXISTS (SELECT 1 FROM games WHERE id=2)
+        AND NOT EXISTS (SELECT 1 FROM sensors WHERE edge_device_id=1 AND game_id=2 AND sensor_type=?)`,
+      [name,eventType,eventType,eventType]);
+  }
+
+  await query(`INSERT INTO actuators (edge_device_id,game_id,name,actuator_type,state,mqtt_topic,status)
+    SELECT 1,2,'Display freccette','SCOREBOARD','IDLE','locales/1/games/2/actuators/3/commands','ACTIVE'
+    WHERE EXISTS (SELECT 1 FROM edge_devices WHERE id=1)
+      AND EXISTS (SELECT 1 FROM games WHERE id=2)
+      AND NOT EXISTS (SELECT 1 FROM actuators WHERE edge_device_id=1 AND game_id=2 AND actuator_type='SCOREBOARD')`);
 
   console.log('Schema completo pronto');
 }

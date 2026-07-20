@@ -1,0 +1,26 @@
+digraph G {
+
+graph [fontname="Arial", bgcolor="white", pad="0.25", nodesep="0.45", ranksep="0.65"];
+node [fontname="Arial", fontsize=10, shape=box, style="rounded,filled", fillcolor="#F4F7FB", color="#34506B", fontcolor="#172B3A", margin="0.10,0.07"];
+edge [fontname="Arial", fontsize=9, color="#526D82", fontcolor="#334E5E", arrowsize=0.7];
+
+rankdir=TB;
+node [shape=record, style="filled", fillcolor="#F7FAFC"];
+matchController [label="{matchController|startMatch(); addMatchEvent(); endMatch(); simulateMatchMqtt()}"];
+matchService [label="{matchEventService|processMatchEvent(); finishMatch(); saveEvent(); getMatchRow()}"];
+gameRules [label="{gameRules|normalizeGameRules(); eventAction(); scoreValue(); reachedScoreLimit()}"];
+mqttClient [label="{mqttClient|connectMqtt(); processHeartbeat(); markSilentDevicesOffline()}"];
+actuator [label="{actuatorService|updateActuators()}"];
+tournament [label="{tournamentService|linkMatchToActiveTournament(); getTournamentRankingRows()}"];
+internal [label="{internalController|getEdgeGameConfiguration(); requireEdgeKey()}"];
+simulator [label="{EdgeSimulator|loadConfiguration(); simulate(); publishOrQueue(); syncQueue()}"];
+db [label="{db|query(); waitForDatabase(); pingDatabase()}"];
+matchController -> matchService;
+mqttClient -> matchService;
+matchService -> gameRules;
+matchService -> actuator;
+matchService -> tournament;
+{matchService mqttClient internal tournament actuator} -> db;
+simulator -> internal [label="REST"];
+simulator -> mqttClient [label="MQTT"];
+}

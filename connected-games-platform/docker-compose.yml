@@ -5,6 +5,7 @@ x-backend-env: &backend-env
   DB_NAME: connected_games
   DB_PORT: 3306
   MQTT_URL: mqtt://mqtt-broker:1883
+  EDGE_SHARED_KEY: playconnect-edge-key
 
 services:
   mysql:
@@ -92,12 +93,16 @@ services:
       PORT: 4000
       DEVICE_ID: 1
       LOCALE_ID: 1
+      CATALOG_URL: http://catalog-service:3001
+      EDGE_SHARED_KEY: playconnect-edge-key
     ports:
       - "8090:4000"
     volumes:
       - edge_data:/app/data
     depends_on:
       mqtt-broker:
+        condition: service_started
+      catalog-service:
         condition: service_started
 
   api-gateway:

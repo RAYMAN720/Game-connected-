@@ -1,20 +1,29 @@
 # PlayConnect - Connected Games Platform
 
-Progetto finale PISSIR 2025/2026. Collega giochi fisici a una piattaforma centrale usando sensori simulati, dispositivo edge, MQTT, REST, microservizi e Docker.
+PlayConnect è il progetto finale del laboratorio PISSIR 2025/2026. La piattaforma collega giochi fisici a un sistema centrale tramite sensori simulati, dispositivo edge, MQTT, API REST, microservizi e Docker.
 
-## Requisiti coperti
+## Funzioni presenti
 
-- quattro ruoli completi;
-- amministratore gioco con tipi, regole e modelli sensore;
-- edge, sensori, attuatori e offline;
+- quattro ruoli con permessi diversi;
+- gestione di locali, utenti, giochi e dispositivi edge;
+- tipi di gioco con eventi e limite di punteggio configurabili;
+- sensori, attuatori e simulazione degli eventi;
+- funzionamento online e offline con sincronizzazione della coda;
 - partite individuali e a squadre;
-- tornei multi-locale con turni e classifica;
-- API Gateway e tre microservizi;
-- Swagger/OpenAPI, UML, casi d'uso e test.
+- tornei tra più locali, turni e classifica;
+- statistiche personali, per gioco e globali;
+- API Gateway e tre microservizi applicativi;
+- documentazione OpenAPI, diagrammi, casi d'uso e test.
 
-## Avvio pulito
+## Avvio
 
-Su Windows fare doppio clic su `start-demo.bat`. Su macOS/Linux eseguire `./start-demo.sh`.
+Su Windows fare doppio clic su `start-demo.bat`.
+
+Su macOS o Linux:
+
+```bash
+./start-demo.sh
+```
 
 Comandi equivalenti:
 
@@ -23,25 +32,22 @@ docker compose down -v
 docker compose up --build -d
 ```
 
-Aprire:
+Pagine principali:
 
-- Applicazione: http://localhost:8080
-- Edge locale: http://localhost:8090
-- API health: http://localhost:3000/api/health
-- MySQL Docker, solo se serve ispezionare il database dal computer host: `localhost:3307`
-
-Nota: dentro Docker i servizi usano sempre `mysql:3306`. Il port mapping esterno e `3307:3306` per evitare conflitti con eventuali installazioni MySQL locali.
+- applicazione: `http://localhost:8080`
+- interfaccia edge: `http://localhost:8090`
+- stato API: `http://localhost:3000/api/health`
 
 ## Account demo
 
 | Ruolo | Username | Password |
 |---|---|---|
-| Piattaforma | platform | platform123 |
-| Locale | localadmin | local123 |
-| Gioco | gameadmin | game123 |
-| Giocatore | client | client123 |
-| Giocatore | mario | mario123 |
-| Giocatore | luigi | luigi123 |
+| Amministratore piattaforma | `platform` | `platform123` |
+| Amministratore locale | `localadmin` | `local123` |
+| Amministratore gioco | `gameadmin` | `game123` |
+| Giocatore | `client` | `client123` |
+| Giocatore | `mario` | `mario123` |
+| Giocatore | `luigi` | `luigi123` |
 
 ## Test
 
@@ -51,32 +57,19 @@ npm test
 npm run check
 cd ..
 node scripts/validate-project.js
-node scripts/integration-test.js  # con Docker avviato
+node scripts/integration-test.js
 ```
 
-Risultati verificati nell'ambiente di preparazione:
+Il test di integrazione richiede i container Docker avviati.
 
-- `npm test`: 27 test superati, 0 falliti;
-- `node scripts/validate-project.js`: 127 controlli superati;
-- `node scripts/integration-test.js`: 7 test superati, 0 falliti, incluso scenario MQTT online/offline con attuatore.
+## Documentazione principale
 
-## Guida rapida
-
-Aprire `START_HERE.md` per installazione, avvio, account e demo.
-
-## Documentazione
-
-- `docs/00-relazione-finale.md`
-- `docs/03-diagrammi.pdf`
-- `docs/13-casi-uso-testuali.md`
-- `docs/14-diagrammi-completi.pdf`
-- `docs/15-guida-demo-esame.md`
-- `docs/16-matrice-requisiti.md`
-- `docs/17-preparation-orale.md`
-- `docs/openapi.yaml`
-- `docs/final/PlayConnect_Relazione_Finale.docx`
 - `docs/final/PlayConnect_Relazione_Finale.pdf`
+- `docs/final/PlayConnect_Relazione_Finale.docx`
+- `docs/final/PlayConnect_Diagrammi.pdf`
+- `docs/13-casi-uso-testuali.pdf`
+- `docs/15-guida-demo-esame.pdf`
+- `docs/16-matrice-requisiti.pdf`
+- `docs/openapi.yaml`
 
-## Spiegazione in una frase
-
-Il sensore manda un evento all'edge, l'edge lo pubblica su MQTT, il Match Service aggiorna partita e attuatori, e il browser legge il risultato tramite REST.
+La guida iniziale si trova in `START_HERE.md`.

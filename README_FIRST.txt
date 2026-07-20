@@ -2,11 +2,12 @@ PLAYCONNECT - CONNECTED GAMES PLATFORM
 
 1. Aprire la cartella connected-games-platform.
 2. Leggere START_HERE.md.
-3. Con Docker Desktop avviato:
-   - Windows: doppio clic su start-demo.bat
-   - macOS/Linux: ./start-demo.sh
-4. Applicazione: http://localhost:8080
-5. Relazione finale: connected-games-platform/docs/final/
+3. Avviare Docker Desktop.
+4. Windows: doppio clic su start-demo.bat.
+5. macOS/Linux: eseguire ./start-demo.sh.
+6. Applicazione: http://localhost:8080
+7. Relazione: connected-games-platform/docs/final/PlayConnect_Relazione_Finale.pdf
+8. Diagrammi: connected-games-platform/docs/final/PlayConnect_Diagrammi.pdf
 
 Account demo:
 platform / platform123
